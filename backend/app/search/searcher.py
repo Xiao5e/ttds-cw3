@@ -95,6 +95,50 @@ def _filter_doc(doc, filters) -> bool:
     return True
 
 
+# 短语匹配
+def phrase_match(text: str, phrase: str) -> bool:
+    return phrase.lower() in text.lower()
+
+
+# 布尔匹配
+def eval_boolean(expr: str, index: IndexStore) -> set[str]:
+    tokens = expr.split()
+    result = None
+    op = None
+
+    for tok in tokens:
+        if tok in {"AND", "OR"}:
+            op = tok
+        elif tok == "NOT":
+            op = "NOT"
+        else:
+            docs = set(doc_id for doc_id, _ in index.postings.get(tok, []))
+
+            if result is None:
+                result = docs
+            elif op == "AND":
+                result &= docs
+            elif op == "OR":
+                result |= docs
+            elif op == "NOT":
+                result -= docs
+
+    return result or set()
+
+
+# 候选文档
+def _candidate_docs(parsed, index: IndexStore) -> set[str]:
+    # Boolean 查询
+    if parsed.boolean:
+        return eval_boolean(parsed.boolean, index)
+
+    # 普通关键词：取 postings union
+    cand = set()
+    for t in parsed.terms:
+        cand |= {doc_id for doc_id, _ in index.postings.get(t, [])}
+    return cand
+
+
 def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expand=None) -> SearchResponse:
     """
     主搜索函数：执行完整搜索流程，包括查询解析、检索、排序、过滤和结果构建。
@@ -126,6 +170,8 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
 
     # 使用计时器记录搜索耗时
     with timer_ms() as took:
+        # 获取候选文档
+        candidates = _candidate_docs(parsed, index)
         # 步骤2: 基础BM25检索
         scores = bm25_scores(q_terms, index)
 
@@ -150,6 +196,7 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
 
         # 步骤5: 构建搜索结果
         results: List[SearchResult] = []
+
         for doc_id, score in ranked:
             # 获取文档详情
             doc = store.get(doc_id)
@@ -160,11 +207,14 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
             if not _filter_doc(doc, req.filters):
                 continue
 
+            if parsed.phrase and not phrase_match(doc.body, parsed.phrase):
+                continue
+
             # 生成摘要片段
             field_text = doc.body
             snippet = _make_snippet(field_text, q_terms)
-
-            # 构建搜索结果对象
+            
+            # 生成结果
             results.append(SearchResult(
                 doc_id=doc.doc_id,
                 title=doc.title,
