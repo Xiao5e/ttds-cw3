@@ -1,0 +1,37 @@
+# 默认忽略的文件
+/shelf/
+/workspace.xml
+# 基于编辑器的 HTTP 客户端请求
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# ===== Runtime data =====
+data/processed/
+data/index/
+
+# Ingestion state
+ingest_state_*.json
+
+# ===== Frontend =====
+frontend/node_modules/
+frontend/dist/
+
+# ===== OS =====
+.DS_Store
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
