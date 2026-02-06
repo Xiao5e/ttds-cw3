@@ -1,54 +1,50 @@
-from __future__ import annotations
-from typing import Dict, Iterable, List, Optional
-from pathlib import Path
-import json
+# 文件路径: indexing/tokenizer.py
 
-from ..schemas import Document
-from ..config import PROCESSED_DIR
+import re
+from typing import List
 
-class DocumentStore:
-    """A tiny document store for the demo.
-    - Keeps docs in memory
-    - Also appends to data/processed/docs.jsonl for reproducibility
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
+
+
+# =========================
+# 确保停用词已下载
+# =========================
+try:·
+    nltk.data.find("corpora/stopwords")
+except LookupError:
+    nltk.download("stopwords")
+
+# =========================
+# 全局对象（提升性能）
+# =========================
+_stemmer = PorterStemmer()
+_stop_words = set(stopwords.words("english"))
+
+
+# =========================
+# 英文分词函数
+# =========================
+def tokenize_en(text: str) -> List[str]:
+    """
+    标准分词流程：
+    1. 小写化 + 正则分词
+    2. 去停用词
+    3. 词干提取 (stemming)
     """
 
-    def __init__(self, persist_path: Optional[Path] = None):
-        self.docs: Dict[str, Document] = {}
-        self.persist_path = persist_path or (PROCESSED_DIR / "docs.jsonl")
-        self.persist_path.parent.mkdir(parents=True, exist_ok=True)
+    if not text:
+        return []
 
-    def load_if_exists(self) -> None:
-        if not self.persist_path.exists():
-            return
-        with self.persist_path.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                doc = Document.model_validate_json(line)
-                self.docs[doc.doc_id] = doc
+    # 只保留字母和数字
+    tokens = re.findall(r"[a-z0-9]+", text.lower())
 
-    def add_documents(self, docs: Iterable[Document], persist: bool = True) -> int:
-        count = 0
-        lines: List[str] = []
-        for doc in docs:
-            if doc.doc_id in self.docs:
-                continue
-            self.docs[doc.doc_id] = doc
-            count += 1
-            if persist:
-                lines.append(doc.model_dump_json())
-        if persist and lines:
-            with self.persist_path.open("a", encoding="utf-8") as f:
-                for ln in lines:
-                    f.write(ln + "\n")
-        return count
+    valid_tokens = []
 
-    def get(self, doc_id: str) -> Optional[Document]:
-        return self.docs.get(doc_id)
+    for t in tokens:
+        if t not in _stop_words and len(t) > 1:
+            stemmed = _stemmer.stem(t)
+            valid_tokens.append(stemmed)
 
-    def all(self) -> List[Document]:
-        return list(self.docs.values())
-
-    def __len__(self) -> int:
-        return len(self.docs)
+    return valid_tokens
