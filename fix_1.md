@@ -46,6 +46,3 @@ SearchResult(score=...) 改为使用 -neg_score
 
 去掉了会污染日志的 print(...)
 
-6) 清理提交风险内容
-
-我在打包版本里移除了：.git/、.venv/、__pycache__/、.pyc（让 repo 更像“可交付项目”）
