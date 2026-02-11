@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import List, Optional, Dict
+from typing import List
 import datetime
 import re
+import heapq
 
 from ..schemas import SearchRequest, SearchResponse, SearchResult
 from ..storage.document_store import DocumentStore
@@ -51,10 +52,12 @@ def _filter_doc(doc, filters) -> bool:
             ts = datetime.datetime.fromisoformat(doc.timestamp.replace("Z", "+00:00"))
             if filters.time_from:
                 t0 = datetime.datetime.fromisoformat(filters.time_from.replace("Z", "+00:00"))
-                if ts < t0: return False
+                if ts < t0:
+                    return False
             if filters.time_to:
                 t1 = datetime.datetime.fromisoformat(filters.time_to.replace("Z", "+00:00"))
-                if ts > t1: return False
+                if ts > t1:
+                    return False
         except Exception:
             pass
 
@@ -147,6 +150,9 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
         返回：
             搜索响应
     """
+    # 调试
+    print("REAL parse_query:", parse_query)
+    print("REAL bm25_scores:", bm25_scores)
 
     # BM25
     with timer_ms() as took:
@@ -187,18 +193,46 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
                     for doc_id, score in expanded_scores.items():
                         scores[doc_id] = max(scores.get(doc_id, 0.0), score)
 
-        # 6. 排序结果
-        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-
-        # 7. 过滤和格式化结果
-        results: List[SearchResult] = []
-        for doc_id, score in ranked:
+        # 6. 排序结果:使用小根堆进行排序
+        heap = []  # 小根堆，存储(-score, doc_id)，这样大得分会排在前面
+        for doc_id, score in scores.items():
             doc = store.get(doc_id)
             if not doc:
                 continue
 
+            # 应用文档过滤器
             if not _filter_doc(doc, req.filters):
                 continue
+
+            # 应用分页过滤器
+            if req.last_min_bm25_score is not None and req.last_max_rerank_id is not None:
+                # 分页逻辑：跳过之前已经返回的文档
+                # 条件1：得分必须小于上次的最小得分（因为我们是降序排列）
+                # 条件2：如果得分相等，doc_id必须大于上次的最大doc_id（用于稳定排序）
+                if score > req.last_min_bm25_score:
+                    continue  # 得分太高，这是之前页的结果
+                elif score == req.last_min_bm25_score and doc_id <= req.last_max_rerank_id:
+                    continue  # 得分相同但doc_id不够大，这也是之前页的结果
+            # 使用负分构建小根堆（因为heapq默认是最小堆）
+            # 我们想要保持最大的K个得分，所以用小根堆来踢掉最小的
+            heap_item = (-score, doc_id)
+
+            if len(heap) < req.top_k:
+                heapq.heappush(heap, heap_item)
+            else:
+                # 如果堆已满，比较当前得分与堆顶（第K大得分）
+                # 因为存储的是负分，所以比较时要取反
+                if -heap_item[0] > -heap[0][0]:  # 当前得分 > 堆顶得分
+                    heapq.heappushpop(heap, heap_item)
+                elif -heap_item[0] == -heap[0][0]:  # 得分相等，比较doc_id
+                    # 对于得分相同的情况，我们想要保持doc_id较小的
+                    heapq.heappushpop(heap, heap_item)
+
+        # 7. 过滤和格式化结果
+        results: List[SearchResult] = []
+        while heap:
+            neg_score, doc_id = heapq.heappop(heap)
+            doc = store.get(doc_id)
 
             # 为摘要生成提取词项（使用原始查询）
             if _is_simple_query(req.query):
@@ -217,14 +251,12 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
                 timestamp=doc.timestamp,
                 lang=doc.lang
             ))
-            if len(results) >= max(1, req.top_k):
-                break
 
+    results.reverse()
     # 返回结果
     return SearchResponse(
         query=req.query,
         took_ms=took(),
-        total_hits=len(ranked),
+        total_hits=len(scores),
         results=results
     )
-

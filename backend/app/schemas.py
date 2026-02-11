@@ -21,6 +21,15 @@ class SearchRequest(BaseModel):
     top_k: int = 10
     use_prf: bool = False
     filters: Optional[SearchFilters] = None
+    # 新增的两个变量
+    last_min_bm25_score: Optional[float] = Field(
+        default=None,
+        description="上次搜索返回结果中的最小BM25得分"
+    )
+    last_max_rerank_id: Optional[str] = Field(
+        default=None,
+        description="上次搜索结果中统一重排序后序号最大的文档ID"
+    )
 
 class SearchResult(BaseModel):
     doc_id: str
