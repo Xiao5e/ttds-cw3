@@ -9,6 +9,8 @@ from .indexing.indexer import build_index, update_index
 from .search.searcher import search as run_search
 from .features.prf import expand_query
 from .utils.logging import get_logger
+from .ingest.scheduler import start_scheduler_task
+
 
 logger = get_logger(__name__)
 
@@ -25,6 +27,7 @@ app.add_middleware(
 
 STORE = DocumentStore()
 INDEX = IndexStore()
+SCHEDULER_TASK = None
 
 def _load_or_seed():
     STORE.load_if_exists()
@@ -70,6 +73,22 @@ def _load_or_seed():
         logger.info("Seeded demo documents and built index.")
 
 _load_or_seed()
+
+
+# Open scheduler
+@app.on_event("startup")
+async def _startup():
+    global SCHEDULER_TASK
+    print("[startup] starting scheduler...", flush=True)
+    SCHEDULER_TASK = start_scheduler_task(STORE, INDEX)
+
+# shut down scheduler
+@app.on_event("shutdown")
+async def _shutdown():
+    global SCHEDULER_TASK
+    print("[shutdown] stopping scheduler...", flush=True)
+    if SCHEDULER_TASK:
+        SCHEDULER_TASK.cancel()
 
 @app.get("/health", response_model=HealthResponse)
 def health():

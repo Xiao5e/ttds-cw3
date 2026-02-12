@@ -1,0 +1,61 @@
+{
+  "default_limit": 20,
+  "sources": [
+    {
+      "id": "arxiv_cs",
+      "url": "https://rss.arxiv.org/rss/cs",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "axcs",
+      "title_prefix": "[arXiv cs]"
+    },
+    {
+      "id": "arxiv_cs_ai",
+      "url": "https://rss.arxiv.org/rss/cs.AI",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "axai",
+      "title_prefix": "[arXiv cs.AI]"
+    },
+    {
+      "id": "bbc_tech",
+      "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "bbc",
+      "title_prefix": "[BBC Tech]"
+    },
+    {
+      "id": "hn",
+      "url": "https://news.ycombinator.com/rss",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "hn",
+      "title_prefix": "[HN]"
+    },
+    {
+      "id": "techcrunch",
+      "url": "https://techcrunch.com/feed/",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "tc",
+      "title_prefix": "[TechCrunch]"
+    },
+    {
+      "id": "mit_news",
+      "url": "https://news.mit.edu/rss/feed",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "mit",
+      "title_prefix": "[MIT]"
+    },
+    {
+      "id": "mit_research",
+      "url": "https://news.mit.edu/rss/research",
+      "lang": "en",
+      "enabled": true,
+      "doc_prefix": "mitr",
+      "title_prefix": "[MIT Research]"
+    }
+  ]
+}
