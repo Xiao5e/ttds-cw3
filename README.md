@@ -39,6 +39,8 @@ Document(
   "query": "string",
   "top_k": 10,
   "use_prf": false,
+  "last_min_bm25_score": null,
+  "last_max_rerank_id": null,
   "filters": {
     "lang": "en",
     "time_from": null,

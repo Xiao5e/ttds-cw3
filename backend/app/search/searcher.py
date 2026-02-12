@@ -196,7 +196,7 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
                         scores[doc_id] = max(scores.get(doc_id, 0.0), score)
 
         # 6. 排序结果:使用小根堆进行排序
-        heap = []  # 小根堆，存储(-score, doc_id)，这样大得分会排在前面
+        heap = []  # 小根堆，存储(score, doc_id)
         for internal_id, score in scores.items():
             ext_id = index.reverse_doc_id_map.get(internal_id)
             if ext_id is None:
@@ -217,26 +217,27 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
                 if score > req.last_min_bm25_score:
                     continue  # 得分太高，这是之前页的结果
                 elif score == req.last_min_bm25_score and ext_id <= req.last_max_rerank_id:
-                    continue  # 得分相同但doc_id不够大，这也是之前页的结果
+                    continue  # 得分相同但doc_id不够大，这也是之前页的结果      //这一块麻烦再确认一下，不是很放心str和tuple的比较
             # 使用负分构建小根堆（因为heapq默认是最小堆）
             # 我们想要保持最大的K个得分，所以用小根堆来踢掉最小的
-            heap_item = (-score, ext_id)
+            heap_item = (score, ext_id)
 
             if len(heap) < req.top_k:
                 heapq.heappush(heap, heap_item)
             else:
                 # 如果堆已满，比较当前得分与堆顶（第K大得分）
                 # 因为存储的是负分，所以比较时要取反
-                if -heap_item[0] > -heap[0][0]:  # 当前得分 > 堆顶得分
+                if heap_item[0] > heap[0][0]:  # 当前得分 > 堆顶得分
                     heapq.heappushpop(heap, heap_item)
-                elif -heap_item[0] == -heap[0][0]:  # 得分相等，比较doc_id
+                elif heap_item[0] == heap[0][0]:  # 得分相等，比较doc_id
                     # 对于得分相同的情况，我们想要保持doc_id较小的
-                    heapq.heappushpop(heap, heap_item)
+                    if heap_item[1] < heap[0][1]: # 当前doc_id < 堆顶doc_id   //这一块麻烦再确认一下，不是很放心str和tuple的比较
+                        heapq.heappushpop(heap, heap_item)
 
         # 7. 过滤和格式化结果
         results: List[SearchResult] = []
         while heap:
-            neg_score, ext_id = heapq.heappop(heap)
+            score, ext_id = heapq.heappop(heap)
             doc = store.get(ext_id)
 
             # 为摘要生成提取词项（使用原始查询）
@@ -247,7 +248,6 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
 
             snippet = _make_snippet(doc.body, snippet_terms)
 
-            score = float(-neg_score)
             results.append(SearchResult(
                 doc_id=doc.doc_id,
                 title=doc.title,
