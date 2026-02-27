@@ -607,4 +607,32 @@ h1 { font-size: 22px; margin: 0 0 16px; }
 .usage-notes h3 { margin-top: 0; margin-bottom: 12px; font-size: 18px; font-weight: 600; color: #333; }
 .usage-notes ul { padding-left: 18px; margin: 0; }
 .usage-notes li { margin-bottom: 8px; font-size: 14px; color: #555; line-height: 1.6; }
+
+@media (orientation: landscape) and (max-height: 480px) {
+  .splash {
+    height: 90vh;
+    overflow: auto;
+    justify-content: flex-start;
+    padding-top: 14px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .splash-center {
+    margin-bottom: 12px;
+  }
+
+  .splash-help {
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .usage-notes {
+    max-height: 42vh;
+    overflow: auto;
+  }
+}
 </style>
