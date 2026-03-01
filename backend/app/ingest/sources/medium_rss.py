@@ -9,6 +9,7 @@ from dateutil import parser as dtparser
 from bs4 import BeautifulSoup
 
 from ...schemas import Document
+from ..backfill_cc.doc_id import make_global_doc_id
 
 # def _stable_doc_id(guid: Optional[str], link: str) -> str:
 #     base = guid or link
@@ -31,42 +32,6 @@ def _html_to_text(html: str) -> str:
     soup = BeautifulSoup(html or "", "html.parser")
     return soup.get_text(separator=" ", strip=True)
 
-# def fetch_documents(feed_url: str, limit: int = 10, timeout_s: int = 15) -> List[Document]:
-#     """
-#     Fetch Medium RSS and map to List[Document].
-#     """
-#     resp = requests.get(feed_url, timeout=timeout_s, headers={"User-Agent": "ttds-cw3-ingest/1.0"})
-#     resp.raise_for_status()
-#     feed = feedparser.parse(resp.text)
-
-#     docs: List[Document] = []
-#     for entry in feed.entries[:limit]:
-#         guid = getattr(entry, "id", None) or getattr(entry, "guid", None)
-#         link = getattr(entry, "link", "")
-
-#         title = (getattr(entry, "title", "") or "").strip()
-
-#         body_html = ""
-#         if hasattr(entry, "content") and entry.content:
-#             body_html = entry.content[0].value or ""
-#         else:
-#             body_html = getattr(entry, "summary", "") or ""
-
-#         body = _html_to_text(body_html)
-#         timestamp = _to_iso8601(getattr(entry, "published", None))
-
-#         docs.append(
-#             Document(
-#                 doc_id=_stable_doc_id(guid, link),
-#                 title=title,
-#                 body=body,
-#                 url=link,
-#                 timestamp=timestamp,
-#                 lang="en",
-#             )
-#         )
-
-#     return docs
 
 def fetch_documents(
     feed_url: str,
@@ -110,7 +75,8 @@ def fetch_documents(
 
         docs.append(
             Document(
-                doc_id=_stable_doc_id(doc_prefix, guid, link),
+                # doc_id = _stable_doc_id(doc_prefix, guid, link),
+                doc_id = make_global_doc_id(link),
                 title=title,
                 body=body,
                 url=link,
