@@ -67,8 +67,8 @@
         </select>
       </label>
 
-      <button class="btn2" @click="checkHealth" :disabled="loadingHealth">Health</button>
-      <span class="muted" v-if="health">{{ health }}</span>
+      <!-- <button class="btn2" @click="checkHealth" :disabled="loadingHealth">Health</button> -->
+      <!-- <span class="muted" v-if="health">{{ health }}</span> -->
     </div>
 
     <div v-if="error" class="error">{{ error }}</div>
@@ -144,13 +144,13 @@ export default {
       pageSize: 10,
 
       loading: false,
-      loadingHealth: false,
+      // loadingHealth: false,
       prefetching: false,
       error: '',
 
       results: [],
       meta: null,
-      health: '',
+      // health: '',
 
       // timing (ms, from backend took_ms)
       currentPageTookMs: null, // only for fetching 1 page; 0 when using cache
@@ -212,7 +212,7 @@ canGoNext() {
       if (!q) return
       this.started = true
       // After entering the main view, run health + first search
-      this.checkHealth()
+      // this.checkHealth()
       this.doSearch()
     },
 
@@ -470,19 +470,19 @@ canGoNext() {
       this.prefetchWindow(this.currentPage)
     },
 
-    async checkHealth() {
-      this.health = ''
-      this.loadingHealth = true
-      try {
-        const res = await fetch('/health')
-        const data = await res.json()
-        this.health = `status=${data.status}, docs=${data.docs_count}, index=${data.index_version}`
-      } catch (e) {
-        this.health = 'health check failed'
-      } finally {
-        this.loadingHealth = false
-      }
-    }
+    // async checkHealth() {
+    //   this.health = ''
+    //   this.loadingHealth = true
+    //   try {
+    //     const res = await fetch('/health')
+    //     const data = await res.json()
+    //     this.health = `status=${data.status}, docs=${data.docs_count}, index=${data.index_version}`
+    //   } catch (e) {
+    //     this.health = 'health check failed'
+    //   } finally {
+    //     this.loadingHealth = false
+    //   }
+    // }
   }
 }
 </script>
