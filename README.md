@@ -29,9 +29,9 @@ cd frontend
 npm install
 npm run dev
 Open: http://127.0.0.1:5173
-Note: Vite dev server proxies /search, /health, and /admin/* to the backend.
 
-## Main API Endpoints
+Note: Vite dev server proxies /search, /health, and /admin/* to the backend.
+Main API Endpoints
 - `POST /search`: search over the indexed corpus
 - `POST /admin/ingest`: fetch new documents and update the index
 - `GET /health`: lightweight health checks
