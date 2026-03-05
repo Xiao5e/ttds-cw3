@@ -87,7 +87,7 @@
 
 <!--      <button class="btn2" @click="checkHealth" :disabled="loadingHealth">Health</button>-->
 <!--      <span class="muted" v-if="health">{{ health }}</span>-->
-<!--    </div>-->
+    </div>
 
     <div v-if="error" class="error">{{ error }}</div>
 
