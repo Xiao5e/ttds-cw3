@@ -2,7 +2,7 @@
   <!-- Splash / initial screen -->
   <div v-if="!started" class="splash">
     <div class="splash-center">
-      <h1 class="splash-title">TTDS CW3 Demo Search</h1>
+      <h1 class="splash-title">Personal Research Digest Search Engine</h1>
 
       <form class="splash-search" @submit.prevent="startSearch">
         <input
@@ -32,7 +32,7 @@
   <!-- Existing UI (shown after first search) -->
   <div v-else class="wrap">
     <div class="top-fixed">
-      <h1>TTDS CW3 Demo Search</h1>
+      <h1>Personal Research Digest Search Engine</h1>
 
     <form class="search" @submit.prevent="doSearch">
       <input
