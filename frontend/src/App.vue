@@ -59,6 +59,24 @@
       </label>
 
       <label class="sel">
+        Sort:
+        <select v-model="sortMode">
+          <option value="relevance">Relevance</option>
+          <option value="freshness">Freshness-boosted</option>
+        </select>
+      </label>
+
+      <label class="sel">
+        From:
+        <input type="date" v-model="dateFrom" />
+      </label>
+
+      <label class="sel">
+        To:
+        <input type="date" v-model="dateTo" />
+      </label>
+
+      <label class="sel">
         Page size:
         <select v-model.number="pageSize">
           <option :value="5">5</option>
@@ -67,9 +85,9 @@
         </select>
       </label>
 
-      <!-- <button class="btn2" @click="checkHealth" :disabled="loadingHealth">Health</button> -->
-      <!-- <span class="muted" v-if="health">{{ health }}</span> -->
-    </div>
+<!--      <button class="btn2" @click="checkHealth" :disabled="loadingHealth">Health</button>-->
+<!--      <span class="muted" v-if="health">{{ health }}</span>-->
+<!--    </div>-->
 
     <div v-if="error" class="error">{{ error }}</div>
 
@@ -141,6 +159,9 @@ export default {
 
       usePrf: false,
       lang: 'en',
+      sortMode: 'relevance',
+      dateFrom: '',
+      dateTo: '',
       pageSize: 10,
 
       loading: false,
@@ -199,6 +220,28 @@ canGoNext() {
   watch: {
     // if user changes page size, restart search with the new size
     pageSize() {
+      if (!this.started) return
+      const q = (this.lastCommittedQuery || this.query || '').trim()
+      if (!q) return
+      this.query = q
+      this.doSearch()
+    },
+    // changing filters/sort should refresh results (and reset pagination cache)
+    sortMode() {
+      if (!this.started) return
+      const q = (this.lastCommittedQuery || this.query || '').trim()
+      if (!q) return
+      this.query = q
+      this.doSearch()
+    },
+    dateFrom() {
+      if (!this.started) return
+      const q = (this.lastCommittedQuery || this.query || '').trim()
+      if (!q) return
+      this.query = q
+      this.doSearch()
+    },
+    dateTo() {
       if (!this.started) return
       const q = (this.lastCommittedQuery || this.query || '').trim()
       if (!q) return
@@ -286,14 +329,13 @@ canGoNext() {
         use_prf: this.usePrf,
         last_min_bm25_score: cursor?.lastscore ?? null,
         last_max_rerank_id: cursor?.lastid ?? null,
-        filters: this.lang
-          ? {
-              lang: this.lang,
-              time_from: null,
-              time_to: null,
-              field: null
-            }
-          : null
+        filters: {
+          lang: this.lang || null,
+          time_from: this.dateFrom ? `${this.dateFrom}T00:00:00Z` : null,
+          time_to: this.dateTo ? `${this.dateTo}T23:59:59Z` : null,
+          field: null,
+          sort: this.sortMode || 'relevance'
+        }
       }
     },
 
