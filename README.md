@@ -12,7 +12,6 @@ Overall, this project demonstrates an end-to-end retrieval system for a realisti
 - Time-range filtering and optional freshness-boosted sorting
 - Scheduler-driven RSS ingestion and incremental indexing
 - Web UI for interactive search with paging and snippets
-- Online deployment support (FastAPI backend + reverse proxy)
 
 ## Repository Structure
 - `backend/`: FastAPI service (indexing, ingestion, retrieval APIs)
@@ -33,6 +32,6 @@ Open: http://127.0.0.1:5173
 Note: Vite dev server proxies /search, /health, and /admin/* to the backend.
 
 ## Main API Endpoints
-POST /search: search over the indexed corpus
-POST /admin/ingest: fetch new documents and update the index
-GET /health: lightweight health checks
+- `POST /search`: search over the indexed corpus
+- `POST /admin/ingest`: fetch new documents and update the index
+- `GET /health`: lightweight health checks
