@@ -78,6 +78,24 @@ def _filter_doc(doc, filters) -> bool:
     return True
 
 
+# Freshness boosting (for live/monitoring scenario)
+def _freshness_boosted_score(score: float, timestamp: str | None, lam: float = 0.2, tau_hours: float = 72.0) -> float:
+    """Apply a lightweight recency boost to a BM25 score.
+
+    score'=score*(1+lam*exp(-age/tau)). For missing/invalid timestamps, return the original score.
+    """
+    if not timestamp:
+        return score
+    try:
+        ts = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        now = datetime.datetime.now(datetime.timezone.utc)
+        age_hours = max(0.0, (now - ts).total_seconds() / 3600.0)
+        boost = lam * (2.718281828 ** (-age_hours / tau_hours))
+        return score * (1.0 + boost)
+    except Exception:
+        return score
+
+
 def _extract_query_terms(query: str) -> List[str]:
     """
     从查询字符串中提取词项用于BM25计算
@@ -223,18 +241,23 @@ def search(req: SearchRequest, store: DocumentStore, index: IndexStore, prf_expa
             if not _filter_doc(doc, req.filters):
                 continue
 
+            # sort mode (default: relevance)
+            final_score = score
+            if req.filters and getattr(req.filters, 'sort', None) == 'freshness':
+                final_score = _freshness_boosted_score(score, doc.timestamp)
+
             # 应用分页过滤器
             if req.last_min_bm25_score is not None and req.last_max_rerank_id is not None:
                 # 分页逻辑：跳过之前已经返回的文档
                 # 条件1：得分必须小于上次的最小得分（因为我们是降序排列）
                 # 条件2：如果得分相等，doc_id必须大于上次的最大doc_id（用于稳定排序）
-                if score > req.last_min_bm25_score:
+                if final_score > req.last_min_bm25_score:
                     continue  # 得分太高，这是之前页的结果
-                elif score == req.last_min_bm25_score and ext_id <= req.last_max_rerank_id:
-                    continue  # 得分相同但doc_id不够大，这也是之前页的结果      //这一块麻烦再确认一下，不是很放心str和tuple的比较
-            # 使用负分构建小根堆（因为heapq默认是最小堆）
-            # 我们想要保持最大的K个得分，所以用小根堆来踢掉最小的
-            heap_item = (score, ext_id)
+                elif final_score == req.last_min_bm25_score and ext_id <= req.last_max_rerank_id:
+                    continue  # 得分相同但doc_id不够大，这也是之前页的结果
+
+            # 使用小根堆保存 top_k
+            heap_item = (final_score, ext_id)
 
             if len(heap) < req.top_k:
                 heapq.heappush(heap, heap_item)

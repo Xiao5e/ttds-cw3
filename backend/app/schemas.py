@@ -15,6 +15,7 @@ class SearchFilters(BaseModel):
     time_from: Optional[str] = None  # ISO
     time_to: Optional[str] = None    # ISO
     field: Optional[Literal["title", "body"]] = None
+    sort: Optional[Literal["relevance", "freshness"]] = "relevance"
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
